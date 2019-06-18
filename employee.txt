@@ -2,4 +2,3 @@ SE-Software Enginering:
 E111,Do Ngoc Huu,1000
 E101,Do Ngoc Huy,2000
 SB-Sofware Bussiness:
-E001,Nguyen Van Teo,1000

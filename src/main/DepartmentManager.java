@@ -14,10 +14,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.StringTokenizer;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 
@@ -42,6 +44,7 @@ public class DepartmentManager extends JFrame {
     private JTextField txtEmpName;
     private JTextField txtEmpCode;
     private JTextField txtEmpSalary;
+    private JLabel lblTimeSave;
     private JLabel lblDepCode;
     private JLabel lblDepName;
     private JLabel lblEmpName;
@@ -62,15 +65,36 @@ public class DepartmentManager extends JFrame {
 
     public DepartmentManager() {
         initComponents();
-        this.setLocationRelativeTo(null);
+        setSize(687, 450);
+        setResizable(false);
+        setLocationRelativeTo(null);
+        setVisible(true);
         root = (DefaultMutableTreeNode) (this.tree.getModel().getRoot());
         loadData(); //Loading initial data from file
         TreePath path = new TreePath(root);
         tree.expandPath(path);
+
+        Thread autoSave = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Thread.sleep(5000);
+                        btnSaveFileActionPerformed(null);
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(null, e);
+                    }
+                }
+            }
+        });
+
+        autoSave.start();
     }
 
     private void initComponents() {
-
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setResizable(false);
+        setLocationRelativeTo(null);
         //Department Details
         //lable and textField Department
         lblDepCode = new JLabel("Code:");
@@ -90,7 +114,7 @@ public class DepartmentManager extends JFrame {
                 btnDepNewActionPerformed(evt);
             }
         });
-        
+
         btnDepRemove = new JButton("Remove");
         btnDepRemove.setFont(new Font("Tahoma", 0, 13));
         btnDepRemove.setPreferredSize(new Dimension(85, 25));
@@ -99,8 +123,7 @@ public class DepartmentManager extends JFrame {
                 btnDepRemoveActionPerformed(evt);
             }
         });
-        
-        
+
         btnDepSave = new JButton("Save");
         btnDepSave.setFont(new Font("Tahoma", 0, 13));
         btnDepSave.setPreferredSize(new Dimension(65, 25));
@@ -109,7 +132,7 @@ public class DepartmentManager extends JFrame {
                 btnDepSaveActionPerformed(evt);
             }
         });
-        
+
         //panel Department
         pnlDep = new JPanel();
         pnlDep.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 16));
@@ -178,9 +201,15 @@ public class DepartmentManager extends JFrame {
         pnlEmp.add(btnEmpRemove);
         pnlEmp.add(btnEmpSave);
 
+        //lblTimeSave
+        lblTimeSave = new JLabel();
+        lblTimeSave.setPreferredSize(new Dimension(273, 20));
+        lblTimeSave.setFont(new Font("Tahoma", 0, 13));
+
         //Panel Right
-        pnlRight = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 15));
-        pnlRight.setPreferredSize(new Dimension(273, 360));
+        pnlRight = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        pnlRight.setPreferredSize(new Dimension(273, 400));
+        pnlRight.add(lblTimeSave);
         pnlRight.add(pnlDep);
         pnlRight.add(pnlEmp);
 
@@ -189,7 +218,7 @@ public class DepartmentManager extends JFrame {
         scrollBar.setViewportView(tree);
         tree = new JTree();
         tree.setBorder(new LineBorder(Color.BLACK, 1));
-        tree.setPreferredSize(new Dimension(273, 290));
+        tree.setPreferredSize(new Dimension(273, 330));
         DefaultMutableTreeNode treeNodel = new DefaultMutableTreeNode("Department");
         tree.setModel(new javax.swing.tree.DefaultTreeModel(treeNodel));
         tree.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -207,8 +236,8 @@ public class DepartmentManager extends JFrame {
         });
 
         //Panel Left
-        pnlLeft = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        pnlLeft.setPreferredSize(new Dimension(273, 360));
+        pnlLeft = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
+        pnlLeft.setPreferredSize(new Dimension(273, 400));
         pnlLeft.add(tree);
         pnlLeft.add(scrollBar);
         pnlLeft.add(btnSavetoFile);
@@ -216,15 +245,12 @@ public class DepartmentManager extends JFrame {
         //Container
         Container container = getRootPane();
         container.setLayout(new FlowLayout(FlowLayout.CENTER, 40, 16));
-        container.setSize(new Dimension(576, 400));
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setResizable(false);
-        setLocationRelativeTo(null);
+        container.setSize(new Dimension(576, 450));
         container.add(pnlLeft);
         container.add(pnlRight);
     }
-    
-    private void btnDepNewActionPerformed(java.awt.event.ActionEvent evt) {                                          
+
+    private void btnDepNewActionPerformed(java.awt.event.ActionEvent evt) {
         //Make the GUI ready for a new department details entered
         this.addNewDep = true;
         this.txtDepCode.setText("");
@@ -235,27 +261,31 @@ public class DepartmentManager extends JFrame {
         this.txtDepCode.setEditable(true);
         this.txtDepCode.requestFocus();
     }
-    
-     private void btnDepSaveActionPerformed(java.awt.event.ActionEvent evt) {                                           
-        //Save department details
-        String code = this.txtDepCode.getText().trim().toUpperCase();
-        txtDepCode.setText(code);
-        String name = this.txtDepName.getText().trim();
-        txtDepName.setText(name);
-        if (validDepDetails() == false) {
-            return;
+
+    private void btnDepSaveActionPerformed(java.awt.event.ActionEvent evt) {
+        try {
+            //Save department details
+            String code = this.txtDepCode.getText().trim().toUpperCase();
+            txtDepCode.setText(code);
+            String name = this.txtDepName.getText().trim();
+            txtDepName.setText(name);
+            if (validDepDetails() == false) {
+                return;
+            }
+            if (addNewDep == true) {
+                Department newDep = new Department(code, name);
+                root.add(new DefaultMutableTreeNode(newDep));
+            } else {
+                ((Department) curDepNode.getUserObject()).setDepName(name);
+            }
+            this.tree.updateUI();
+            this.addNewDep = false;
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Please click the New button to add new Department.");
         }
-        if (addNewDep == true) {
-            Department newDep = new Department(code, name);
-            root.add(new DefaultMutableTreeNode(newDep));
-        } else {
-            ((Department) curDepNode.getUserObject()).setDepName(name);
-        }
-        this.tree.updateUI();
-        this.addNewDep = false;
     }
-     
-    private void btnDepRemoveActionPerformed(java.awt.event.ActionEvent evt) {                                             
+
+    private void btnDepRemoveActionPerformed(java.awt.event.ActionEvent evt) {
         //Removing a department
         if (this.curDepNode.getChildCount() > 0) {
             String msg = "Remove all emloyees before deleting a department.";
@@ -268,8 +298,8 @@ public class DepartmentManager extends JFrame {
             }
         }
     }
-    
-    private void btnEmpRemoveActionPerformed(java.awt.event.ActionEvent evt) {                                             
+
+    private void btnEmpRemoveActionPerformed(java.awt.event.ActionEvent evt) {
         if (this.curEmpNode != null) {
             int response = JOptionPane.showConfirmDialog(this, "Delete this employee?");
             if (response == JOptionPane.OK_OPTION) {
@@ -278,32 +308,37 @@ public class DepartmentManager extends JFrame {
             }
         }
     }
-    
-    private void btnEmpSaveActionPerformed(java.awt.event.ActionEvent evt) {                                           
+
+    private void btnEmpSaveActionPerformed(java.awt.event.ActionEvent evt) {
         //Save employee details
-        String code = this.txtEmpCode.getText().trim().toUpperCase();
-        txtEmpCode.setText(code);
-        String name = this.txtEmpName.getText().trim();
-        txtEmpName.setText(name);
-        String salalyStr = this.txtEmpSalary.getText().trim();
-        txtEmpSalary.setText(salalyStr);
-        int sal = Integer.parseInt(salalyStr);
-        if (validEmpDetails() == false) {
-            return;
+        try {
+            String code = this.txtEmpCode.getText().trim().toUpperCase();
+            txtEmpCode.setText(code);
+            String name = this.txtEmpName.getText().trim();
+            txtEmpName.setText(name);
+            String salalyStr = this.txtEmpSalary.getText().trim();
+            txtEmpSalary.setText(salalyStr);
+            int sal = Integer.parseInt(salalyStr);
+            if (validEmpDetails() == false) {
+                return;
+            }
+            if (addNewEmp == true) {
+                Employee newEmp = new Employee(code, name, sal);
+                curDepNode.add(new DefaultMutableTreeNode(newEmp));
+            } else {
+                Employee emp = (Employee) (curEmpNode.getUserObject());
+                emp.setEmpName(name);
+                emp.setSalary(sal);
+            }
+            this.tree.updateUI();
+            this.addNewEmp = false;
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Please click the New button to add new Employee.");
         }
-        if (addNewEmp == true) {
-            Employee newEmp = new Employee(code, name, sal);
-            curDepNode.add(new DefaultMutableTreeNode(newEmp));
-        } else {
-            Employee emp = (Employee) (curEmpNode.getUserObject());
-            emp.setEmpName(name);
-            emp.setSalary(sal);
-        }
-        this.tree.updateUI();
-        this.addNewEmp = false;
+
     }
-    
-    private void btnEmpNewActionPerformed(java.awt.event.ActionEvent evt) {                                          
+
+    private void btnEmpNewActionPerformed(java.awt.event.ActionEvent evt) {
         this.addNewEmp = true;
         this.txtEmpCode.setText("");
         this.txtEmpName.setText("");
@@ -311,7 +346,7 @@ public class DepartmentManager extends JFrame {
         this.txtEmpCode.setEditable(true);
         this.txtEmpCode.requestFocus();
     }
-    
+
     public boolean validDepDetails() {
         String s = "";
         if (addNewDep == true) { //checking the code
@@ -379,8 +414,8 @@ public class DepartmentManager extends JFrame {
         }
         return true;
     }
-    
-    private void treeMouseClicked(java.awt.event.MouseEvent evt) {                                  
+
+    private void treeMouseClicked(java.awt.event.MouseEvent evt) {
         //turn of the on-tree editting mode
         tree.cancelEditing();
         //Get the clicked node at the last component of the path
@@ -399,15 +434,15 @@ public class DepartmentManager extends JFrame {
             if (selectedObj instanceof Department) {
                 this.curDepNode = selectedNode;
                 this.curEmpNode = null;
-            } else if(selectedObj instanceof Employee) {
+            } else if (selectedObj instanceof Employee) {
                 curEmpNode = selectedNode;
                 curDepNode = (DefaultMutableTreeNode) (selectedNode.getParent());
             }
         }
         viewDeptAndEmp();
     }
-    
-    private void btnSaveFileActionPerformed(java.awt.event.ActionEvent evt) {                                            
+
+    private void btnSaveFileActionPerformed(java.awt.event.ActionEvent evt) {
         //Saving details to the file
         if (root.getChildCount() == 0) {
             return;
@@ -432,7 +467,8 @@ public class DepartmentManager extends JFrame {
             }
             pf.close();
             f.close();
-            JOptionPane.showMessageDialog(this, "Data are saved to the file " + filename);
+            String time = new Date(System.currentTimeMillis()).toString();
+            lblTimeSave.setText("Last saved: " + time);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e);
         }
@@ -487,10 +523,10 @@ public class DepartmentManager extends JFrame {
     }
 
     public static void main(String[] args) {
-        DepartmentManager departmentManager = new DepartmentManager();
-        departmentManager.setSize(690, 430);
-        departmentManager.setResizable(false);
-        departmentManager.setLocationRelativeTo(null);
-        departmentManager.setVisible(true);
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new DepartmentManager();
+            }
+        });
     }
 }
